@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Referral Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .approve {
+            background: #16a34a;
+            color: white;
+        }
+
+        .reject {
+            background: #dc2626;
+            color: white;
+        }
+
+        .referral {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛡️ Admin Referral Dashboard</h1>
+    <label>Admin API Key</label>
+<input
+    type="password"
+    id="adminKey"
+    placeholder="Enter admin API key"
+>
+
+<br><br>
+
+    <button onclick="loadReferrals()">Load Referrals</button>
+
+    <div id="referrals">Referrals will appear here...</div>
+
+</div>
+
+<script>
+async function loadReferrals() {
+
+    const box = document.getElementById("referrals");
+    box.textContent = "Loading referrals...";
+
+    try {
+        const apiKey = document.getElementById("adminKey").value;
+
+const response = await fetch("/referral/", {
+    headers: {
+        "x-admin-key": apiKey
+    }
+});
+        const referrals = await response.json();
+
+        if (!response.ok) {
+            box.textContent = "Error loading referrals";
+            return;
+        }
+
+        box.innerHTML = "";
+
+        referrals.forEach(referral => {
+
+            const card = document.createElement("div");
+            card.className = "referral";
+
+            card.innerHTML = `
+                <h3>Referral #${referral.id}</h3>
+                <p><strong>User ID:</strong> ${referral.user_id}</p>
+                <p><strong>Risk:</strong> ${referral.risk_level}</p>
+                <p><strong>Status:</strong> ${referral.status}</p>
+                <p><strong>Reason:</strong> ${referral.reason}</p>
+            `;
+
+            if (referral.status === "Pending Review") {
+
+                const approveButton = document.createElement("button");
+                approveButton.textContent = "Approve";
+                approveButton.className = "approve";
+
+                approveButton.onclick = () => reviewReferral(
+                    referral.id,
+                    "Approved"
+                );
+
+                const rejectButton = document.createElement("button");
+                rejectButton.textContent = "Reject";
+                rejectButton.className = "reject";
+
+                rejectButton.onclick = () => reviewReferral(
+                    referral.id,
+                    "Rejected"
+                );
+
+                card.appendChild(approveButton);
+                card.appendChild(rejectButton);
+            }
+
+            box.appendChild(card);
+        });
+
+    } catch (error) {
+        box.textContent = "Error: " + error.message;
+    }
+}
+
+
+async function reviewReferral(referralId, decision) {
+
+    const apiKey = document.getElementById("adminKey").value;
+
+const response = await fetch(
+    `/admin/referrals/${referralId}/review`,
+    {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "x-admin-key": apiKey
+        },
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                decision: decision
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    alert(JSON.stringify(data, null, 2));
+    
+
+    loadReferrals();
+    
+}
+</script>
+
+</body>
+</html>

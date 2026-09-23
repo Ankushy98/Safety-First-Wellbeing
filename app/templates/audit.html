@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Logs</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        button {
+            padding: 10px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .log {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📋 Audit Logs Dashboard</h1>
+    <label>Admin API Key</label>
+
+<input
+    type="password"
+    id="adminKey"
+    placeholder="Enter admin API key"
+>
+
+<br><br>
+
+    <button onclick="loadLogs()">Load Audit Logs</button>
+
+    <div id="logs">Logs will appear here...</div>
+
+</div>
+
+<script>
+async function loadLogs() {
+
+    const box = document.getElementById("logs");
+    box.textContent = "Loading logs...";
+
+    try {
+        const apiKey = document.getElementById("adminKey").value;
+
+const response = await fetch("/admin/audit-logs", {
+    method: "GET",
+    headers: {
+        "x-admin-key": apiKey
+    }
+});
+        const logs = await response.json();
+
+        if (!response.ok) {
+            box.textContent = "Error loading logs";
+            return;
+        }
+
+        box.innerHTML = "";
+
+        if (logs.length === 0) {
+            box.textContent = "No audit logs found.";
+            return;
+        }
+
+        logs.forEach(log => {
+
+            const card = document.createElement("div");
+            card.className = "log";
+
+            card.innerHTML = `
+                <h3>Event: ${log.event}</h3>
+                <p><strong>Log ID:</strong> ${log.id}</p>
+                <p><strong>User ID:</strong> ${log.user_id ?? "N/A"}</p>
+                <p><strong>Risk Level:</strong> ${log.risk_level ?? "N/A"}</p>
+                <p><strong>Action:</strong> ${log.action ?? "N/A"}</p>
+                <p><strong>Created At:</strong> ${log.created_at}</p>
+            `;
+
+            box.appendChild(card);
+        });
+
+    } catch (error) {
+        box.textContent = "Error: " + error.message;
+    }
+}
+</script>
+
+</body>
+</html>
