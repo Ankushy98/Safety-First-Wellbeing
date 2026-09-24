@@ -62,50 +62,81 @@
 async function loadLogs() {
 
     const box = document.getElementById("logs");
+    const apiKey = document.getElementById("adminKey").value.trim();
+
+    if (!apiKey) {
+        box.textContent = "Please enter Admin API Key.";
+        return;
+    }
+
     box.textContent = "Loading logs...";
 
     try {
-        const apiKey = document.getElementById("adminKey").value;
 
-const response = await fetch("/admin/audit-logs", {
-    method: "GET",
-    headers: {
-        "x-admin-key": apiKey
-    }
-});
-        const logs = await response.json();
+        const response = await fetch("/admin/audit-logs", {
+            method: "GET",
+            headers: {
+                "x-admin-key": apiKey
+            }
+        });
+
+        const data = await response.json();
 
         if (!response.ok) {
-            box.textContent = "Error loading logs";
+            box.textContent =
+                `Error ${response.status}: ${data.detail || "Unable to load logs"}`;
             return;
         }
 
         box.innerHTML = "";
 
-        if (logs.length === 0) {
+        if (!Array.isArray(data) || data.length === 0) {
             box.textContent = "No audit logs found.";
             return;
         }
 
-        logs.forEach(log => {
+        data.forEach(log => {
 
             const card = document.createElement("div");
             card.className = "log";
 
             card.innerHTML = `
-                <h3>Event: ${log.event}</h3>
-                <p><strong>Log ID:</strong> ${log.id}</p>
-                <p><strong>User ID:</strong> ${log.user_id ?? "N/A"}</p>
-                <p><strong>Risk Level:</strong> ${log.risk_level ?? "N/A"}</p>
-                <p><strong>Action:</strong> ${log.action ?? "N/A"}</p>
-                <p><strong>Created At:</strong> ${log.created_at}</p>
+                <h3>📌 ${log.event || "Unknown Event"}</h3>
+
+                <p>
+                    <strong>Log ID:</strong>
+                    ${log.id ?? "N/A"}
+                </p>
+
+                <p>
+                    <strong>User ID:</strong>
+                    ${log.user_id ?? "N/A"}
+                </p>
+
+                <p>
+                    <strong>Risk Level:</strong>
+                    ${log.risk_level ?? "N/A"}
+                </p>
+
+                <p>
+                    <strong>Action:</strong>
+                    ${log.action ?? "N/A"}
+                </p>
+
+                <p>
+                    <strong>Created At:</strong>
+                    ${log.created_at ?? "N/A"}
+                </p>
             `;
 
             box.appendChild(card);
         });
 
     } catch (error) {
-        box.textContent = "Error: " + error.message;
+
+        box.textContent =
+            "Connection Error: " + error.message;
+
     }
 }
 </script>

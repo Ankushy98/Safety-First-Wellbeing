@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from ..database.models import AuditLog
 
 from ..database.database import get_db
 from ..database.models import AuditLog, HumanReferral
@@ -82,4 +84,37 @@ def review_referral(
         "referral_id": referral.id,
         "status": referral.status,
         "reviewed_by": "Human Staff"
+    }
+
+@router.get("/monitoring")
+def get_monitoring(
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_admin_key)
+):
+
+    total_logs = db.query(AuditLog).count()
+
+    high_risk = (
+        db.query(AuditLog)
+        .filter(AuditLog.risk_level == "HIGH")
+        .count()
+    )
+
+    blocked_tools = (
+        db.query(AuditLog)
+        .filter(AuditLog.event == "Tool blocked")
+        .count()
+    )
+
+    agent_decisions = (
+        db.query(AuditLog)
+        .filter(AuditLog.event == "Agent decision")
+        .count()
+    )
+
+    return {
+        "total_audit_logs": total_logs,
+        "high_risk_events": high_risk,
+        "blocked_tool_actions": blocked_tools,
+        "agent_decisions": agent_decisions
     }

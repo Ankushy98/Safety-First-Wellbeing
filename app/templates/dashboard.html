@@ -51,7 +51,7 @@
 
 <div class="container">
 
-    <h1>🧠 Wellbeing Dashboard</h1>
+    <h1>Wellbeing Dashboard</h1>
 
     <form id="journalForm">
 
@@ -74,6 +74,15 @@
 <button type="button" onclick="loadSummary()">
     View Mood Summary
 </button>
+<h2>📈 Mood Trend</h2>
+
+<button type="button" onclick="loadTrend()">
+    View Mood Trend
+</button>
+
+<div style="width: 100%; max-width: 800px; margin-top: 20px;">
+    <canvas id="moodChart"></canvas>
+</div>
 
 <div id="summary"></div>
     <button type="button" onclick="loadHistory()">
@@ -85,6 +94,84 @@
 </div>
 
 <script>
+
+    let moodChart = null;
+
+async function loadTrend() {
+
+    const userId = document.getElementById("user_id").value;
+    const canvas = document.getElementById("moodChart");
+
+    if (!userId) {
+        alert("Please enter User ID");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(`/journal/trend/${userId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert("Unable to load mood trend");
+            return;
+        }
+
+        if (!data.moods || data.moods.length === 0) {
+            alert("No mood data available");
+            return;
+        }
+
+        if (moodChart) {
+            moodChart.destroy();
+        }
+
+        moodChart = new Chart(canvas, {
+            type: "line",
+
+            data: {
+                labels: data.dates,
+
+                datasets: [{
+                    label: "Mood",
+                    data: data.moods,
+                    tension: 0.3,
+                    fill: false
+                }]
+            },
+
+            options: {
+                responsive: true,
+
+                scales: {
+                    y: {
+                        min: 1,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: "Mood (1-5)"
+                        }
+                    },
+
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Date"
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+
+        alert("Error loading trend: " + error.message);
+
+    }
+}
     document.getElementById("journalForm").addEventListener("submit", async function(event) {
 
         event.preventDefault();
@@ -120,51 +207,91 @@
 
     });
 
-    async function loadHistory() {
 
-    const user_id = document.getElementById("user_id").value;
-    const historyBox = document.getElementById("history");
-
-    historyBox.textContent = "Loading history...";
+    // =========================
+    // MOOD SUMMARY
+    // =========================
 
     async function loadSummary() {
 
-    const user_id = document.getElementById("user_id").value;
-    const summaryBox = document.getElementById("summary");
+        const user_id = document.getElementById("user_id").value;
+        const summaryBox = document.getElementById("summary");
 
-    summaryBox.textContent = "Loading summary...";
+        summaryBox.textContent = "Loading summary...";
+        
 
-    try {
-        const response = await fetch(`/journal/summary/${user_id}`);
-        const data = await response.json();
+        try {
 
-        if (!response.ok) {
-            summaryBox.textContent = "Error loading summary";
-            return;
+            const response = await fetch(`/journal/summary/${user_id}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                summaryBox.textContent = "Error loading summary";
+                return;
+            }
+
+            summaryBox.innerHTML = `
+                <h3>📊 Mood Summary</h3>
+
+                <p>
+                    <strong>Total Journals:</strong>
+                    ${data.total_entries}
+                </p>
+
+                <p>
+                    <strong>Average Mood:</strong>
+                    ${data.average_mood}
+                </p>
+
+                <p>
+                    <strong>Risk Counts:</strong>
+                </p>
+
+                <pre>${JSON.stringify(data.risk_counts, null, 2)}</pre>
+            `;
+
+        } catch (error) {
+
+            summaryBox.textContent =
+                "Error: " + error.message;
+
         }
-
-        summaryBox.innerHTML = `
-            <p><strong>Total Journals:</strong> ${data.total_entries}</p>
-            <p><strong>Average Mood:</strong> ${data.average_mood}</p>
-            <p><strong>Risk Counts:</strong></p>
-            <pre>${JSON.stringify(data.risk_counts, null, 2)}</pre>
-        `;
-
-    } catch (error) {
-        summaryBox.textContent = "Error: " + error.message;
     }
-}
 
-    try {
-        const response = await fetch(`/journal/${user_id}`);
-        const data = await response.json();
+    
 
-        historyBox.textContent = JSON.stringify(data, null, 2);
 
-    } catch (error) {
-        historyBox.textContent = "Error: " + error.message;
+    // =========================
+    // JOURNAL HISTORY
+    // =========================
+
+    async function loadHistory() {
+
+        const user_id = document.getElementById("user_id").value;
+        const historyBox = document.getElementById("history");
+
+        historyBox.textContent = "Loading history...";
+
+        try {
+
+            const response = await fetch(`/journal/${user_id}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                historyBox.textContent = "Error loading history";
+                return;
+            }
+
+            historyBox.textContent =
+                JSON.stringify(data, null, 2);
+
+        } catch (error) {
+
+            historyBox.textContent =
+                "Error: " + error.message;
+
+        }
     }
-}
 </script>
 
 </body>
